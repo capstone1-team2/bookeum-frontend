@@ -73,6 +73,8 @@ fun EbookViewerWithMusicScreen(
     var fontSize by remember { mutableStateOf(16) }
     var isDarkMode by remember { mutableStateOf(false) }
 
+    var bookPlaylist by remember(bookIsbn) { mutableStateOf<List<Music>>(emptyList()) }
+
     // 음악 플레이어 상태
     var showMusicPlayer by remember { mutableStateOf(false) }
 
@@ -125,12 +127,7 @@ fun EbookViewerWithMusicScreen(
             try {
                 val response = Api.retrofitService.getPlaylist(bookIsbn)
                 if (response.isSuccessful && response.body() != null) {
-                    val playlistData = response.body()!!.playlist
-                    if (playlistData.isNotEmpty()) {
-                        musicPlayerViewModel.setPlaylist(playlistData)
-                        // 첫 번째 곡 자동 재생 (선택적)
-                        // musicPlayerViewModel.playPlaylist(playlistData, 0)
-                    }
+                    bookPlaylist = response.body()!!.playlist
                 } else {
                     println("플레이리스트 정보 로드 실패: ${response.code()}")
                 }
@@ -141,10 +138,12 @@ fun EbookViewerWithMusicScreen(
     }
 
     // ✅ 수정: 챕터 변경 시 음악 변경 (안전하게 처리)
-    LaunchedEffect(currentChapterIndex) {
-        if (playlist.isNotEmpty()) {
-            val trackIndex = currentChapterIndex % playlist.size
-            musicPlayerViewModel.playTrack(playlist[trackIndex])
+    LaunchedEffect(bookIsbn, currentChapterIndex, bookPlaylist) {
+        val chapterMusic = bookPlaylist.filter { it.chapterIndex == currentChapterIndex }
+        musicPlayerViewModel.pause()
+        musicPlayerViewModel.setPlaylist(chapterMusic)
+        if (chapterMusic.isNotEmpty()) {
+            musicPlayerViewModel.playPlaylist(chapterMusic)
         }
     }
 

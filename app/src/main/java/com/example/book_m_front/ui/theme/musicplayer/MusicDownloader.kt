@@ -33,8 +33,8 @@ class MusicDownloader @Inject constructor(
                 musicDir.mkdirs()
             }
 
-            // 3. 파일명 생성 (예: music_123.mp3)
-            val fileName = "music_${music.id}.mp3"
+            // 3. 파일명 생성 (예: music_123.wav)
+            val fileName = "music_${music.id}.wav"
             val musicFile = File(musicDir, fileName)
 
             // 4. 이미 다운로드된 파일이 있으면 재사용
@@ -60,7 +60,7 @@ class MusicDownloader @Inject constructor(
     // 캐시된 파일 경로 가져오기 (다운로드 안 함)
     fun getCachedFilePath(music: Music): String? {
         val musicDir = File(context.getExternalFilesDir(null), "music")
-        val musicFile = File(musicDir, "music_${music.id}.mp3")
+        val musicFile = File(musicDir, "music_${music.id}.wav")
         return if (musicFile.exists()) musicFile.absolutePath else null
     }
 

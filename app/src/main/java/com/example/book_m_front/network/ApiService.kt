@@ -209,7 +209,7 @@ interface ApiService {
      * @param isbn 책 ISBN
      * @return 전체 플레이리스트
      */
-    @GET("books/{isbn}/playlist")
+    @GET("music/playlist/{isbn}")
     suspend fun getPlaylist(
         @Path("isbn") isbn: String
     ): Response<PlaylistResponse>
@@ -220,7 +220,7 @@ interface ApiService {
      * @param musicId 다운로드할 음악의 고유 ID
      * @return 음악 파일의 바이너리 데이터 스트림
      */
-    @GET("musics/{musicId}/content") // 백엔드와 약속된 실제 엔드포인트로 수정해야 합니다.
+    @GET("music/{musicId}/download")
     @Streaming // 대용량 파일(음악)을 처리하기 위해 스트리밍 방식을 사용
     suspend fun downloadMusicFile(
         @Path("musicId") musicId: String
@@ -233,11 +233,6 @@ interface ApiService {
      * @param chapterNum 챕터 번호
      * @return 해당 챕터의 플레이리스트
      */
-    @GET("books/{isbn}/chapters/{chapterNum}/playlist")
-    suspend fun getPlaylistByChapter(
-        @Path("isbn") isbn: String,
-        @Path("chapterNum") chapterNum: Int
-    ): Response<PlaylistResponse>
 
     /**
      * AI 플레이리스트 생성 요청 (아직 생성되지 않은 경우)
@@ -508,4 +503,19 @@ object Api {
     val retrofitService: ApiService by lazy {
         retrofit.create(ApiService::class.java)
     }
+}
+
+// 백엔드는 책 전체의 챕터 목록을 반환하므로 클라이언트에서 선택합니다.
+suspend fun ApiService.getPlaylistByChapter(
+    isbn: String,
+    chapterNum: Int
+): Response<PlaylistResponse> {
+    val response = getPlaylist(isbn)
+    val body = response.body()
+    if (!response.isSuccessful || body == null) return response
+    val chapters = body.chapterPlaylist.filter { it.chapterNum == chapterNum }
+    return Response.success(body.copy(
+        chapterPlaylist = chapters,
+        totalMusic = chapters.sumOf { it.musics.size }
+    ), response.raw())
 }

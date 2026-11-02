@@ -173,7 +173,7 @@ class MusicController @Inject constructor(
     suspend fun setPlaylist(musicList: List<Music>, startIndex: Int = 0): Result<Unit> {
         return try {
             // 1. 모든 곡 다운로드
-            val localPaths = mutableListOf<String>()
+            val downloadedTracks = mutableListOf<Pair<Music, String>>()
 
             for (music in musicList) {
                 var localPath = musicDownloader.getCachedFilePath(music)
@@ -187,11 +187,17 @@ class MusicController @Inject constructor(
                     localPath = downloadResult.getOrNull()!!
                 }
 
-                localPaths.add(localPath)
+                downloadedTracks.add(music to localPath)
             }
 
             // 2. MediaItem 리스트 생성
-            val mediaItems = musicList.zip(localPaths).map { (music, path) ->
+            if (downloadedTracks.isEmpty()) {
+                return Result.failure(Exception("재생 가능한 음악을 다운로드하지 못했습니다"))
+            }
+            val playableStartIndex = downloadedTracks.indexOfFirst {
+                it.first == musicList.getOrNull(startIndex)
+            }.coerceAtLeast(0)
+            val mediaItems = downloadedTracks.map { (music, path) ->
                 MediaItem.Builder()
                     .setUri(path)
                     .setMediaId(music.id.toString())
@@ -207,14 +213,12 @@ class MusicController @Inject constructor(
 
             // 3. 재생
             mediaController?.apply {
-                setMediaItems(mediaItems, startIndex, 0)
+                setMediaItems(mediaItems, playableStartIndex, 0)
                 prepare()
                 play()
             }
 
-            if (musicList.isNotEmpty()) {
-                _currentMusic.value = musicList[startIndex]
-            }
+            _currentMusic.value = downloadedTracks[playableStartIndex].first
 
             Result.success(Unit)
 

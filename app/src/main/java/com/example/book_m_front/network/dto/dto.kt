@@ -187,12 +187,34 @@ data class Music(
  * 플레이리스트 응답
  */
 data class PlaylistResponse(
-    val success: Boolean = true,
     val isbn: String,
-    val playlistId: String? = null,
-    val playlistName: String? = null,
-    val playlist: List<Music>,
-    val generatedAt: String? = null
+    val title: String,
+    val totalChapters: Int?,
+    val totalMusic: Int,
+    val chapterPlaylist: List<ChapterPlaylistResponse>
+) {
+    // 서버 DTO를 기존 플레이어에서 사용하는 화면 모델로 변환합니다.
+    val playlist: List<Music>
+        get() = chapterPlaylist.flatMap { chapter ->
+            chapter.musics.map { music ->
+                Music(
+                    id = music.id.toString(),
+                    title = "AI 음악 ${music.id}",
+                    artist = "북음 AI",
+                    album = title,
+                    chapterIndex = chapter.chapterNum - 1
+                )
+            }
+        }
+}
+
+data class ChapterPlaylistResponse(
+    val chapterNum: Int,
+    val musics: List<MusicResponse>
+)
+
+data class MusicResponse(
+    val id: Long
 )
 
 /**
